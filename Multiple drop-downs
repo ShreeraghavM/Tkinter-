@@ -1,0 +1,114 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+import cx_Oracle
+import asyncio
+from playwright.async_api import async_playwright
+from playwright_script import run  # Import the run function from your Playwright script
+
+async def fetch_issuer_name(issuer_name):
+    # Replace with your Oracle database credentials and query
+    dsn_tns = cx_Oracle.makedsn('hostname', 'port', service_name='service_name')
+    connection = cx_Oracle.connect(user='username', password='password', dsn=dsn_tns)
+    
+    cursor = connection.cursor()
+    query = "SELECT issuer_name, some_other_column FROM your_table WHERE issuer_name = :issuer_name"
+    cursor.execute(query, issuer_name=issuer_name)
+    
+    # Fetch the data
+    data = cursor.fetchall()
+    
+    cursor.close()
+    connection.close()
+    
+    # Display the query result in the Treeview
+    for row in data:
+        tree.insert("", "end", values=row)
+
+    if not data:
+        messagebox.showinfo("Result", "No data found for the given issuer name.")
+        
+def search_issuer_name():
+    issuer_name = entry1.get()
+    # Clear the existing data in the Treeview
+    for item in tree.get_children():
+        tree.delete(item)
+    asyncio.run(fetch_issuer_name(issuer_name))
+
+async def on_submit():
+    issuer_name = entry1.get()
+    action = action_var.get()
+    action_additional = action_additional_var.get()
+    product_code = entry3.get()
+    product_code_additional = product_code_additional_var.get()
+    
+    if not issuer_name or not action or not product_code:
+        messagebox.showerror("Error", "All fields must be filled out")
+        return
+    
+    # Run the Playwright script with the inputs
+    async with async_playwright() as playwright:
+        await run(playwright, issuer_name, action, product_code)
+
+def submit_callback():
+    asyncio.run(on_submit())
+
+# Create the main window
+root = tk.Tk()
+root.title("Playwright GUI Application")
+root.geometry("800x400")
+root.configure(bg="#f0f0f0")
+
+# Frame for the form
+form_frame = tk.Frame(root, bg="#ffffff", padx=20, pady=20, relief=tk.RIDGE, bd=2)
+form_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
+
+# Title label
+title_label = tk.Label(form_frame, text="Playwright GUI Application", font=("Arial", 16, "bold"), bg="#ffffff")
+title_label.grid(row=0, columnspan=4, pady=(0, 10))
+
+# Input fields and labels
+tk.Label(form_frame, text="Issuer Name:", bg="#ffffff", font=("Arial", 12)).grid(row=1, column=0, sticky=tk.E, pady=5, padx=5)
+entry1 = tk.Entry(form_frame, font=("Arial", 12))
+entry1.grid(row=1, column=1, pady=5, padx=5)
+search_button = tk.Button(form_frame, text="🔍", command=search_issuer_name, font=("Arial", 12), bg="#4CAF50", fg="#ffffff")
+search_button.grid(row=1, column=2, pady=5, padx=5)
+
+# Action dropdowns
+tk.Label(form_frame, text="Action:", bg="#ffffff", font=("Arial", 12)).grid(row=2, column=0, sticky=tk.E, pady=5, padx=5)
+action_var = tk.StringVar()
+action_dropdown = ttk.Combobox(form_frame, textvariable=action_var, font=("Arial", 12))
+action_dropdown['values'] = ["Option 1", "Option 2", "Option 3"]  # Example values, update as needed
+action_dropdown.grid(row=2, column=1, pady=5, padx=5)
+
+action_additional_var = tk.StringVar()
+action_additional_dropdown = ttk.Combobox(form_frame, textvariable=action_additional_var, font=("Arial", 12))
+action_additional_dropdown['values'] = ["Option 1", "Option 2", "Option 3"]  # Example values, update as needed
+action_additional_dropdown.grid(row=2, column=2, pady=5, padx=5)
+
+# Product Code dropdowns
+tk.Label(form_frame, text="Product Code:", bg="#ffffff", font=("Arial", 12)).grid(row=3, column=0, sticky=tk.E, pady=5, padx=5)
+entry3 = tk.Entry(form_frame, font=("Arial", 12))
+entry3.grid(row=3, column=1, pady=5, padx=5)
+
+product_code_additional_var = tk.StringVar()
+product_code_additional_dropdown = ttk.Combobox(form_frame, textvariable=product_code_additional_var, font=("Arial", 12))
+product_code_additional_dropdown['values'] = ["Option 1", "Option 2", "Option 3"]  # Example values, update as needed
+product_code_additional_dropdown.grid(row=3, column=2, pady=5, padx=5)
+
+# Submit button
+submit_button = tk.Button(form_frame, text="Submit", command=submit_callback, font=("Arial", 12, "bold"), bg="#4CAF50", fg="#ffffff")
+submit_button.grid(row=4, columnspan=4, pady=20)
+
+# Treeview to display query results
+columns = ("issuer_name", "other_column")
+tree = ttk.Treeview(root, columns=columns, show="headings")
+tree.heading("issuer_name", text="Issuer Name")
+tree.heading("other_column", text="Other Column")
+tree.grid(row=0, column=1, padx=20, pady=20, sticky="nsew", columnspan=3)
+
+# Configure column weights
+root.grid_columnconfigure(1, weight=1)
+root.grid_rowconfigure(0, weight=1)
+
+# Run the application
+root.mainloop()
