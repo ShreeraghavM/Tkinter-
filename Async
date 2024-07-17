@@ -1,0 +1,104 @@
+import asyncio
+from playwright.async_api import async_playwright
+import cx_Oracle
+from tabulate import tabulate
+
+cx_Oracle.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")
+
+async def exec_procedures(exCartId):
+    dsn_tns = cx_Oracle.makedsn(host='oracloud-qa-scan.fitchratings.com', port='1521', service_name='intra')
+    connection = cx_Oracle.connect(user='ftch_srvc', password='dssq16', dsn=dsn_tns)
+    cursor = connection.cursor()
+
+    output_value = cursor.callproc("automate_create_cmtt_details", [exCartId])
+    cursor.callproc("bypass_rac", [exCartId])
+    
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+async def run(playwright, issuer_name: str, product_type: str, action: str, product_code: str):
+    browser = await playwright.firefox.launch(headless=False)
+    context = await browser.new_context()
+    page = await context.new_page()
+
+    await page.goto("https://qwc-qa-aws.fitchratings.com/GWC-workflow/generalInfo.jsp?treeId=80442259&biz=CF&qrpId=88442259")
+    await page.get_by_placeholder("someone@example.com").click()
+    await page.get_by_placeholder("someone@example.com").fill("jmeruva@fitchgroup.co")
+    await page.get_by_role("button", name="Next").click()
+    await page.locator("#10118").fill("21@Shreeraghav")
+    await page.get_by_role("button", name="Sign in").click()
+
+    await page.locator("fa").first.click()
+    await page.get_by_role("link", name="Quick Links").click()
+
+    with await page.expect_popup() as page1_info:
+        await page.get_by_role("link", name="Create New Rating Cart").click()
+
+    page1 = await page1_info.value
+
+    await page1.get_by_text("Select Business Group").click()
+    await page1.get_by_role("list").get_by_text("Corp/FI/Sov/IPF").click()
+    await page1.get_by_text("Select Service Type...").click()
+    await page1.get_by_role("list").get_by_text("Rating", exact=True).click()
+    await page1.locator("action-icons span >span").first.click()
+    await page1.get_by_placeholder("Ultimate Parent, Issuer, ").click()
+    await page1.get_by_placeholder("Ultimate Parent, Issuer, ").fill(issuer_name)
+    await page1.get_by_role("button", name="SEARCH").click()
+    await page1.get_by_role("cell", name=issuer_name).first.click(timeout=100000)
+    await page1.get_by_role("button", name="ADD").click()
+    await page1.get_by_role("button", name="DONE").click()
+    await page1.get_by_role("button", name="DO NOT ADD RELATED ENTITIES").click()
+    await page1.get_by_role("button", name="ENTER CART").click()
+    await page1.get_by_role("button", name="Ok").click()
+    await page1.get_by_role("button", name="Proceed").click()
+    await page1.get_by_role("button", name="ACTIONS").click()
+
+    await page1.locator("[id=\"\\32 \"] > .p-multiselect-trigger").click()
+    await page1.locator("li").filter(has_text=product_type).locator("div").nth(2).click()
+    await page1.locator("[id=\"\\32 \"]").get_by_role("button", name="Apply").click()
+    await page1.locator("td:nth-child(13) > .rc-ratings > span > .rc-inline-rating").first.click()
+    await page1.locator("td").filter(has_text="SelectAffirmedConfirmedCriteria Observation Removed DowngradeRating Watch").locator("span").click()
+
+    if action == "upgrade":
+        await page1.get_by_role("list").get_by_text(action).click()
+    elif action == "downgrade":
+        await page1.get_by_role("list").get_by_text(action).click()
+
+    if product_code == "A":
+        await page1.get_by_role("list").get_by_text("A", exact=True).click()
+    elif product_code == "AA":
+        await page1.get_by_role("list").get_by_text("AA", exact=True).click()
+    elif product_code == "AAA":
+        await page1.get_by_role("list").get_by_text("AAA", exact=True).click()
+    elif product_code == "A-":
+        await page1.get_by_role("list").get_by_text("A-", exact=True).click()
+    elif product_code == "A+":
+        await page1.get_by_role("list").get_by_text("A+", exact=True).click()
+
+    str_url = page1.url
+    str_index = str_url.find("cartId") + 7
+    ex_cart_id = str_url[str_index:str_index + 6]
+
+    await exec_procedures(ex_cart_id)
+
+    web = "https://ratingcart-qa-aws.fitchratings.com/cart-ui/overview?cartId="
+    cart_url = web + str(ex_cart_id)
+
+    table = [["Issuer_Name: ", issuer_name], ["product_Type: ", product_type], ["Action: ", action], ["Product_Code: ", product_code], ["Cart_URL", cart_url]]
+    output = tabulate(table, tablefmt='grid')
+
+    print(output)
+
+# Entry point for the script
+if __name__ == "__main__":
+    issuer_name = "Sample Issuer"
+    product_type = "Sample Product Type"
+    action = "upgrade"
+    product_code = "A"
+
+    async def main():
+        async with async_playwright() as playwright:
+            await run(playwright, issuer_name, product_type, action, product_code)
+
+    asyncio.run(main())
