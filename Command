@@ -1,62 +1,112 @@
+from playwright.sync_api import Playwright, sync_playwright
 import cx_Oracle
-from playwright.sync_api import sync_playwright
-from playwright_script import run  # Import the run function from your Playwright script
-import argparse
+from tabulate import tabulate
 
-def fetch_issuer_name(issuer_name):
-    # Replace with your Oracle database credentials and query
-    dsn_tns = cx_Oracle.makedsn('hostname', 'port', service_name='service_name')
-    connection = cx_Oracle.connect(user='username', password='password', dsn=dsn_tns)
-    
+# Initialize Oracle client
+cx_Oracle.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")
+
+def exec_procedures(exCartId):
+    dsn_tns = cx_Oracle.makedsn(host='oracloud-qa-scan.fitchratings.com', port='1521', service_name='intra')
+    connection = cx_Oracle.connect('ftch_srvc', 'dssq16', dsn_tns)
     cursor = connection.cursor()
-    query = "SELECT issuer_name, some_other_column FROM your_table WHERE issuer_name = :issuer_name"
-    cursor.execute(query, issuer_name=issuer_name)
-    
-    # Fetch the data
-    data = cursor.fetchall()
-    
+    outputValue = cursor.callproc("automate_create_cmtt_details", [exCartId])
+    connection.commit()
     cursor.close()
     connection.close()
+
+def test_run(playwright: Playwright, issuer_name: str, product_type: str, action: str, product_code: str, get_options: bool = False):
+    browser = playwright.firefox.launch(headless=False)
+    context = browser.new_context()
+    page = context.new_page()
+
+    # Navigate to the webpage
+    page.goto("https://qwc-qa-aws.fitchratings.com/GWC-workflow/generalInfo.jsp?treeId=80442259&biz=CF&qrpId=88442259")
     
-    # Display the query result in the console
-    if data:
-        for row in data:
-            print(f"Issuer Name: {row[0]}, Other Column: {row[1]}")
-    else:
-        print("No data found for the given issuer name.")
-        
-def search_issuer_name(issuer_name):
-    fetch_issuer_name(issuer_name)
+    # Login
+    page.get_by_placeholder("someone@example.com").click()
+    page.get_by_placeholder("someone@example.com").fill("jmeruva@fitchgroup.co")
+    page.get_by_role("button", name="Next").click()
+    page.locator("#10118").fill("21@Shreeraghav")
+    page.get_by_role("button", name="Sign in").click()
+    page.locator(".fa").first.click()
 
-def on_submit(issuer_name, action, action_additional, product_code, product_code_additional):
-    if not issuer_name or not action or not product_code:
-        print("Error: All fields must be filled out")
-        return
-    
-    # Run the Playwright script with the inputs
-    with sync_playwright() as playwright:
-        run(playwright, issuer_name, action, product_code)
+    # Click on Quick Links
+    page.get_by_role("link", name="Quick Links").click()
 
-def main():
-    parser = argparse.ArgumentParser(description="CLI for Playwright and Oracle Database Interaction")
-    parser.add_argument('--issuer_name', type=str, required=True, help="Issuer name to search or use")
-    parser.add_argument('--action', type=str, required=True, help="Action to perform")
-    parser.add_argument('--action_additional', type=str, required=False, help="Additional action to perform")
-    parser.add_argument('--product_code', type=str, required=True, help="Product code to use")
-    parser.add_argument('--product_code_additional', type=str, required=False, help="Additional product code to use")
-    parser.add_argument('--search', action='store_true', help="Flag to perform search")
-    
-    args = parser.parse_args()
+    with page.expect_popup() as page1_info:
+        page.get_by_role("link", name="Create New Rating Cart").click()
 
-    if args.search:
-        search_issuer_name(args.issuer_name)
-    else:
-        on_submit(args.issuer_name, args.action, args.action_additional, args.product_code, args.product_code_additional)
+    page1 = page1_info.value
+    page1.get_by_text("Select Business Group").click()
+    page1.get_by_role("list").get_by_text("Corp/FI/Sov/IPF").click()
+    page1.get_by_text("Select Service Type...").click()
+    page1.get_by_role("list").get_by_text("Rating", exact=True).click()
+    page1.locator("action-icons span > span").first.click()
+    page1.get_by_placeholder("Ultimate Parent, Issuer, ").click()
+    page1.get_by_placeholder("Ultimate Parent, Issuer, ").fill(issuer_name)
+    page1.get_by_role("button", name="SEARCH").click()
+    page1.get_by_role("cell", name=issuer_name).first.click(timeout=100000)
+    page1.get_by_role("button", name="ADD").click()
+    page1.get_by_role("button", name="DONE").click()
 
-if __name__ == "__main__":
-    main()
+    try:
+        page1.get_by_role("button", name="DO NOT ADD RELATED ENTITIES").click()
+    except Exception as e:
+        print(f"No 'DO NOT ADD RELATED ENTITIES' button found: {e}")
 
-_----------
-python your_script.py --issuer_name "ExampleIssuer" --search
-python your_script.py --issuer_name "ExampleIssuer" --action "ActionName" --action_additional "AdditionalAction" --product_code "ProductCode" --product_code_additional "AdditionalProductCode"
+    # Adding explicit wait here with a more robust selector
+    print("Waiting for 'ENTER CART' button to be visible...")
+    page1.wait_for_selector("button:has-text('ENTER CART')")
+    print("'ENTER CART' button is now visible.")
+    page1.get_by_role("button", name="ENTER CART").click()
 
+    page1.wait_for_selector("button:has-text('Ok')", timeout=30000)
+    page1.get_by_role("button", name="Ok").click()
+
+    page1.wait_for_selector("button:has-text('Proceed')", timeout=30000)
+    page1.get_by_role("button", name="Proceed").click()
+
+    page1.wait_for_selector("button:has-text('ACTIONS')", timeout=30000)
+    page1.get_by_role("button", name="ACTIONS").click()
+
+    page1.locator("[id=\"\\32 \"] > .p-multiselect-trigger").click()
+    page1.locator("//div[contains(@class, 'p-multiselect-panel') and contains(@class,'p-hidden')]").locator("li").filter(has_text=product_type).locator("div").nth(2).click()
+    page1.locator("[id=\"\\32 \"]").get_by_role("button", name="Apply").click()
+    page1.locator("td:nth-child(13) > .rc-ratings > span > .rc-inline-rating").first.click()
+
+    if action == "upgrade":
+        page1.get_by_role("list").get_by_text(action).click()
+    elif action == "Downgrade":
+        page1.get_by_role("list").get_by_text(action).click()
+
+    if product_code == "A":
+        page1.get_by_role("list").get_by_text("A", exact=True).click()
+    elif product_code == "AA":
+        page1.get_by_role("list").get_by_text("AA", exact=True).click()
+    elif product_code == "AAA":
+        page1.get_by_role("list").get_by_text("AAA", exact=True).click()
+    elif product_code == "A-":
+        page1.get_by_role("list").get_by_text("A-", exact=True).click()
+    elif product_code == "A+":
+        page1.get_by_role("list").get_by_text("A+", exact=True).click()
+
+    page1.get_by_role("button", name="SAVE", exact=True).click()
+    strUrl = page1.url
+    print(strUrl)
+
+    page1.get_by_role("button", name="RETURN TO OVERVIEW", exact=True).click()
+    page1.get_by_role("button", name="This is correct").click()
+    page1.wait_for_timeout(10000)
+
+    strIndex = strUrl.find("cartId") + 7
+    exCartId = strUrl[strIndex:strIndex + 6]
+    exec_procedures(exCartId)
+    web = "https://ratingcart-qa-aws.fitchratings.com/cart-ui/overview?cartId="
+    cart_url = web + str(exCartId)
+
+    table = [["Issuer_Name:", issuer_name], ["Product_Type:", product_type], ["Action:", action], ["Product_Code:", product_code], ["Cart_URL:", cart_url]]
+    output = tabulate(table, tablefmt='grid')
+    print(output)
+
+with sync_playwright() as playwright:
+    test_run(playwright, "A143511", "Rating", "upgrade", "A")
