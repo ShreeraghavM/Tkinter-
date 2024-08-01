@@ -1,0 +1,62 @@
+import cx_Oracle
+from playwright.sync_api import sync_playwright
+from playwright_script import run  # Import the run function from your Playwright script
+import argparse
+
+def fetch_issuer_name(issuer_name):
+    # Replace with your Oracle database credentials and query
+    dsn_tns = cx_Oracle.makedsn('hostname', 'port', service_name='service_name')
+    connection = cx_Oracle.connect(user='username', password='password', dsn=dsn_tns)
+    
+    cursor = connection.cursor()
+    query = "SELECT issuer_name, some_other_column FROM your_table WHERE issuer_name = :issuer_name"
+    cursor.execute(query, issuer_name=issuer_name)
+    
+    # Fetch the data
+    data = cursor.fetchall()
+    
+    cursor.close()
+    connection.close()
+    
+    # Display the query result in the console
+    if data:
+        for row in data:
+            print(f"Issuer Name: {row[0]}, Other Column: {row[1]}")
+    else:
+        print("No data found for the given issuer name.")
+        
+def search_issuer_name(issuer_name):
+    fetch_issuer_name(issuer_name)
+
+def on_submit(issuer_name, action, action_additional, product_code, product_code_additional):
+    if not issuer_name or not action or not product_code:
+        print("Error: All fields must be filled out")
+        return
+    
+    # Run the Playwright script with the inputs
+    with sync_playwright() as playwright:
+        run(playwright, issuer_name, action, product_code)
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI for Playwright and Oracle Database Interaction")
+    parser.add_argument('--issuer_name', type=str, required=True, help="Issuer name to search or use")
+    parser.add_argument('--action', type=str, required=True, help="Action to perform")
+    parser.add_argument('--action_additional', type=str, required=False, help="Additional action to perform")
+    parser.add_argument('--product_code', type=str, required=True, help="Product code to use")
+    parser.add_argument('--product_code_additional', type=str, required=False, help="Additional product code to use")
+    parser.add_argument('--search', action='store_true', help="Flag to perform search")
+    
+    args = parser.parse_args()
+
+    if args.search:
+        search_issuer_name(args.issuer_name)
+    else:
+        on_submit(args.issuer_name, args.action, args.action_additional, args.product_code, args.product_code_additional)
+
+if __name__ == "__main__":
+    main()
+
+_----------
+python your_script.py --issuer_name "ExampleIssuer" --search
+python your_script.py --issuer_name "ExampleIssuer" --action "ActionName" --action_additional "AdditionalAction" --product_code "ProductCode" --product_code_additional "AdditionalProductCode"
+
