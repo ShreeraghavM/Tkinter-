@@ -1,112 +1,203 @@
-from playwright.sync_api import Playwright, sync_playwright
-import cx_Oracle
-from tabulate import tabulate
+Sure, I can help you prepare a comprehensive document for your demo. Here’s the outline based on your requirements:
 
-# Initialize Oracle client
-cx_Oracle.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")
+### DRO AUTOMATION CART CREATION TOOL
 
-def exec_procedures(exCartId):
-    dsn_tns = cx_Oracle.makedsn(host='oracloud-qa-scan.fitchratings.com', port='1521', service_name='intra')
-    connection = cx_Oracle.connect('ftch_srvc', 'dssq16', dsn_tns)
-    cursor = connection.cursor()
-    outputValue = cursor.callproc("automate_create_cmtt_details", [exCartId])
-    connection.commit()
-    cursor.close()
-    connection.close()
+#### Overview
+The DRO Automation Cart Creation Tool is designed to automate the process of creating and managing rating carts. Leveraging the power of Playwright for browser automation and Oracle for database interactions, this tool streamlines and simplifies the workflow for users.
 
-def test_run(playwright: Playwright, issuer_name: str, product_type: str, action: str, product_code: str, get_options: bool = False):
-    browser = playwright.firefox.launch(headless=False)
-    context = browser.new_context()
-    page = context.new_page()
+#### Features
+- Automated login and navigation through the rating cart creation process.
+- Interaction with Oracle databases to execute procedures and fetch required data.
+- User-friendly interface with logging and error handling.
+- Screenshots for troubleshooting and verifying page states.
+- Support for different user inputs including issuer name, product type, action, and product code.
 
-    # Navigate to the webpage
-    page.goto("https://qwc-qa-aws.fitchratings.com/GWC-workflow/generalInfo.jsp?treeId=80442259&biz=CF&qrpId=88442259")
-    
-    # Login
-    page.get_by_placeholder("someone@example.com").click()
-    page.get_by_placeholder("someone@example.com").fill("jmeruva@fitchgroup.co")
-    page.get_by_role("button", name="Next").click()
-    page.locator("#10118").fill("21@Shreeraghav")
-    page.get_by_role("button", name="Sign in").click()
-    page.locator(".fa").first.click()
+#### Pre-requisites
+- Python 3.7 or later
+- Oracle Instant Client
+- Playwright
+- cx_Oracle
+- tabulate
 
-    # Click on Quick Links
-    page.get_by_role("link", name="Quick Links").click()
+#### Installing Dependencies
+To install the necessary dependencies, you can use the following commands:
+```sh
+pip install playwright
+pip install cx_Oracle
+pip install tabulate
+python -m playwright install
+```
 
-    with page.expect_popup() as page1_info:
-        page.get_by_role("link", name="Create New Rating Cart").click()
+Additionally, ensure that the Oracle Instant Client is correctly set up on your system.
 
-    page1 = page1_info.value
-    page1.get_by_text("Select Business Group").click()
-    page1.get_by_role("list").get_by_text("Corp/FI/Sov/IPF").click()
-    page1.get_by_text("Select Service Type...").click()
-    page1.get_by_role("list").get_by_text("Rating", exact=True).click()
-    page1.locator("action-icons span > span").first.click()
-    page1.get_by_placeholder("Ultimate Parent, Issuer, ").click()
-    page1.get_by_placeholder("Ultimate Parent, Issuer, ").fill(issuer_name)
-    page1.get_by_role("button", name="SEARCH").click()
-    page1.get_by_role("cell", name=issuer_name).first.click(timeout=100000)
-    page1.get_by_role("button", name="ADD").click()
-    page1.get_by_role("button", name="DONE").click()
+#### Troubleshooting
+- **Issue**: Button not found or script stops unexpectedly.
+  **Solution**: Verify the selectors used in the script. Add logging and screenshots at critical points to diagnose the issue.
+- **Issue**: Oracle connection errors.
+  **Solution**: Ensure that the Oracle Instant Client is correctly installed and that your connection details are accurate.
+- **Issue**: Browser not launching.
+  **Solution**: Ensure that Playwright is correctly installed and that the necessary browsers are installed using `python -m playwright install`.
 
-    try:
-        page1.get_by_role("button", name="DO NOT ADD RELATED ENTITIES").click()
-    except Exception as e:
-        print(f"No 'DO NOT ADD RELATED ENTITIES' button found: {e}")
+#### Detailed Playwright Introduction for Beginners
 
-    # Adding explicit wait here with a more robust selector
-    print("Waiting for 'ENTER CART' button to be visible...")
-    page1.wait_for_selector("button:has-text('ENTER CART')")
-    print("'ENTER CART' button is now visible.")
-    page1.get_by_role("button", name="ENTER CART").click()
+##### What is Playwright?
+Playwright is an open-source browser automation tool developed by Microsoft. It provides a high-level API to control headless and headful browsers such as Chromium, Firefox, and WebKit. Playwright enables developers to write reliable and fast browser tests, automating a wide range of user interactions.
 
-    page1.wait_for_selector("button:has-text('Ok')", timeout=30000)
-    page1.get_by_role("button", name="Ok").click()
+##### Installation
+To install Playwright, run the following command:
+```sh
+pip install playwright
+```
+After installation, download the necessary browsers:
+```sh
+python -m playwright install
+```
 
-    page1.wait_for_selector("button:has-text('Proceed')", timeout=30000)
-    page1.get_by_role("button", name="Proceed").click()
+##### Basics
+Playwright allows you to automate browser actions such as navigating to a URL, filling out forms, clicking buttons, and more. Below is a basic example to get you started:
 
-    page1.wait_for_selector("button:has-text('ACTIONS')", timeout=30000)
-    page1.get_by_role("button", name="ACTIONS").click()
+```python
+from playwright.sync_api import sync_playwright
 
-    page1.locator("[id=\"\\32 \"] > .p-multiselect-trigger").click()
-    page1.locator("//div[contains(@class, 'p-multiselect-panel') and contains(@class,'p-hidden')]").locator("li").filter(has_text=product_type).locator("div").nth(2).click()
-    page1.locator("[id=\"\\32 \"]").get_by_role("button", name="Apply").click()
-    page1.locator("td:nth-child(13) > .rc-ratings > span > .rc-inline-rating").first.click()
-
-    if action == "upgrade":
-        page1.get_by_role("list").get_by_text(action).click()
-    elif action == "Downgrade":
-        page1.get_by_role("list").get_by_text(action).click()
-
-    if product_code == "A":
-        page1.get_by_role("list").get_by_text("A", exact=True).click()
-    elif product_code == "AA":
-        page1.get_by_role("list").get_by_text("AA", exact=True).click()
-    elif product_code == "AAA":
-        page1.get_by_role("list").get_by_text("AAA", exact=True).click()
-    elif product_code == "A-":
-        page1.get_by_role("list").get_by_text("A-", exact=True).click()
-    elif product_code == "A+":
-        page1.get_by_role("list").get_by_text("A+", exact=True).click()
-
-    page1.get_by_role("button", name="SAVE", exact=True).click()
-    strUrl = page1.url
-    print(strUrl)
-
-    page1.get_by_role("button", name="RETURN TO OVERVIEW", exact=True).click()
-    page1.get_by_role("button", name="This is correct").click()
-    page1.wait_for_timeout(10000)
-
-    strIndex = strUrl.find("cartId") + 7
-    exCartId = strUrl[strIndex:strIndex + 6]
-    exec_procedures(exCartId)
-    web = "https://ratingcart-qa-aws.fitchratings.com/cart-ui/overview?cartId="
-    cart_url = web + str(exCartId)
-
-    table = [["Issuer_Name:", issuer_name], ["Product_Type:", product_type], ["Action:", action], ["Product_Code:", product_code], ["Cart_URL:", cart_url]]
-    output = tabulate(table, tablefmt='grid')
-    print(output)
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)
+    page = browser.new_page()
+    page.goto("https://example.com")
+    page.screenshot(path="example.png")
+    browser.close()
 
 with sync_playwright() as playwright:
-    test_run(playwright, "A143511", "Rating", "upgrade", "A")
+    run(playwright)
+```
+
+##### Sample Script
+Here’s a more detailed script that logs into a website and takes a screenshot:
+
+```python
+from playwright.sync_api import sync_playwright
+
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)
+    page = browser.new_page()
+    page.goto("https://example.com/login")
+    
+    # Perform login
+    page.fill('input[name="username"]', 'your_username')
+    page.fill('input[name="password"]', 'your_password')
+    page.click('button[type="submit"]')
+    
+    # Wait for navigation
+    page.wait_for_navigation()
+    
+    # Take a screenshot after login
+    page.screenshot(path="logged_in.png")
+    
+    browser.close()
+
+with sync_playwright() as playwright:
+    run(playwright)
+```
+
+### Document Template for Demo
+
+#### DRO AUTOMATION CART CREATION TOOL
+
+---
+
+##### Overview
+The DRO Automation Cart Creation Tool is designed to automate the process of creating and managing rating carts. Leveraging the power of Playwright for browser automation and Oracle for database interactions, this tool streamlines and simplifies the workflow for users.
+
+##### Features
+- Automated login and navigation through the rating cart creation process.
+- Interaction with Oracle databases to execute procedures and fetch required data.
+- User-friendly interface with logging and error handling.
+- Screenshots for troubleshooting and verifying page states.
+- Support for different user inputs including issuer name, product type, action, and product code.
+
+##### Pre-requisites
+- Python 3.7 or later
+- Oracle Instant Client
+- Playwright
+- cx_Oracle
+- tabulate
+
+##### Installing Dependencies
+To install the necessary dependencies, you can use the following commands:
+```sh
+pip install playwright
+pip install cx_Oracle
+pip install tabulate
+python -m playwright install
+```
+
+Additionally, ensure that the Oracle Instant Client is correctly set up on your system.
+
+##### Troubleshooting
+- **Issue**: Button not found or script stops unexpectedly.
+  **Solution**: Verify the selectors used in the script. Add logging and screenshots at critical points to diagnose the issue.
+- **Issue**: Oracle connection errors.
+  **Solution**: Ensure that the Oracle Instant Client is correctly installed and that your connection details are accurate.
+- **Issue**: Browser not launching.
+  **Solution**: Ensure that Playwright is correctly installed and that the necessary browsers are installed using `python -m playwright install`.
+
+##### Detailed Playwright Introduction for Beginners
+
+###### What is Playwright?
+Playwright is an open-source browser automation tool developed by Microsoft. It provides a high-level API to control headless and headful browsers such as Chromium, Firefox, and WebKit. Playwright enables developers to write reliable and fast browser tests, automating a wide range of user interactions.
+
+###### Installation
+To install Playwright, run the following command:
+```sh
+pip install playwright
+```
+After installation, download the necessary browsers:
+```sh
+python -m playwright install
+```
+
+###### Basics
+Playwright allows you to automate browser actions such as navigating to a URL, filling out forms, clicking buttons, and more. Below is a basic example to get you started:
+
+```python
+from playwright.sync_api import sync_playwright
+
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)
+    page = browser.new_page()
+    page.goto("https://example.com")
+    page.screenshot(path="example.png")
+    browser.close()
+
+with sync_playwright() as playwright:
+    run(playwright)
+```
+
+###### Sample Script
+Here’s a more detailed script that logs into a website and takes a screenshot:
+
+```python
+from playwright.sync_api import sync_playwright
+
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)
+    page = browser.new_page()
+    page.goto("https://example.com/login")
+    
+    # Perform login
+    page.fill('input[name="username"]', 'your_username')
+    page.fill('input[name="password"]', 'your_password')
+    page.click('button[type="submit"]')
+    
+    # Wait for navigation
+    page.wait_for_navigation()
+    
+    # Take a screenshot after login
+    page.screenshot(path="logged_in.png")
+    
+    browser.close()
+
+with sync_playwright() as playwright:
+    run(playwright)
+```
+
+This document provides a structured approach to introduce and demonstrate the DRO Automation Cart Creation Tool, ensuring your audience understands its purpose, setup, and usage. If you have any further requirements or need additional details, please let me know!
