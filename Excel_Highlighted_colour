@@ -1,0 +1,28 @@
+Sub SelectColoredCells()
+    Dim ws As Worksheet
+    Dim rng As Range
+    Dim cell As Range
+    Dim selectedRange As Range
+    Dim cellColor As Long
+
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' Replace with your sheet name
+    Set rng = ws.UsedRange ' You can change this to the specific range you need
+
+    cellColor = RGB(255, 255, 0) ' Replace with the RGB color value of your highlight (e.g., yellow)
+
+    For Each cell In rng
+        If cell.Interior.Color = cellColor Then
+            If selectedRange Is Nothing Then
+                Set selectedRange = cell
+            Else
+                Set selectedRange = Union(selectedRange, cell)
+            End If
+        End If
+    Next cell
+
+    If Not selectedRange Is Nothing Then
+        selectedRange.Select
+    Else
+        MsgBox "No cells with the specified color found."
+    End If
+End Sub
