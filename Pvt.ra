@@ -1,0 +1,80 @@
+ BRM Instructs Analytical Team to begin analysis
+
+Search for new entity in GWC. If the entity isn't yet an issuer then click on the 'Create Entity drop- down list from the 'hamburger' icon in the upper left of GWC landing page.
+
+Select the relevant group
+
+Search for the Issuer Agent by clicking on the magnifier glass
+
+Select the Management Line (The Fitch team that will be responsible for the Ratings).
+
+Enter the Agent Name and Seach (if not found you will need to request a new Agent by clicking on the "Request a new agent hyperlink
+
+Populate the Required information for the new entity and press 'Next' to add debt levels
+
+Select the Desired Debt Level and press "'Next' to add issues to the debt level
+
+Add required Issue level details and press "Save This should open the new issuer in GWC
+
+Add the new issuer to a Cart by clicking on the activity icon to the right of the entity name on the left "Entity Structure' side bar
+ Create an entity in GWC
+
+ Select the Service Type: "Private Initial/Indicative Rating
+
+Click 'Enter Cart' bottom left
+
+Create Committee/Invitation Assign Criteria and Model Assign Recommended Ratings (See Rating Service Flow Diagram)
+
+Hold Committee
+
+Populate Final Committee Questions Populate Final Ratings
+
+Submit Committee for Chair Approval Create Draft Rating Letter
+
+Send, Issuer Notification Draft Rating Letter
+
+Press 'SUBMIT" to finalise initial Ratirigs
+
+Once Cart status = Complete, select 'Correct/ Convert dropdown and choose "Convert' to initiate conversion to monitored ratings.
+ Rating cart stage1: Assigning Private point in time Ratings
+
+ On the 'Rating Conversion' window, answer the questions, populate Rating Action* and Distribution, and Select which rows of Ratings 
+will be converted to monitored. Press 'Convert'
+
+Create a Draft RAC or Draft Rating Letter PDF
+
+Notify Issuer (attach draft letter or draft RAC)
+
+Press 'Submit' to send Stage Il Cart to Rating Desk and proceed with RAC Publication
+ Rating Cart Stage -2 Conversion
+
+
+: Context
+
+Private Initial/Indicative Ratings Services used to:
+
+Assign private initial point in time PIT Ratings (Stage 1)
+
+Convert PIT Ratings to monitored Ratings (Stage II)
+
+Conversion does not require an additional committee if within 4 weeks of the original committee and no material changes.
+
+If the agent does not appear, click on the "Request a New Agent Jink in the upper right of the Agent Search window. This will send a request to the Agents Team.
+
+Additional detail can be added to an issue at a later date. Please not all debt levels need at least one issue in order to 'hold' the rating. Create a placeholder issue in cases were there is a new program of debt without any issuance (we still need an issue (called ratable) on which to attach the rating action
+
+Creation of Entity in GWC
+ The Stage I workflow is the same as the Rating Service workflow for a private rating (Invitation, Committee, Issuer Notification, and Submission of Cart to Ratings Desk).
+
+Please note: the Private Initial/Indication Service must be submitted to the Ratings Desk before the private point-in-time ratings are saved to Fitch's central ratings database (ARCs). If the cart status = 'Complete', then the private ratings are saved in the central database.
+
+You can't convert the private point-in-time ratings into monitored ratings until the Stage I cart is complete.
+
+Rating cart stage2:
+
+The conversion feature automatically create a new cart for you based on the information in the stage I cart
+
+The system will ask you to confirm that there are no material changes since the committee decision. If Y, then the system will add a new committee to the Stage Il cart. At least one row from the Rating Conversion window must be selected (just tilick on the row) before the "Convert button will activate
+
+The conversion feature will also allow you to select which of the ratings you wish to convert and what you would like to convert them into expected ratings, final ratings, or credit opinions
+
